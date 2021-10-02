@@ -5,72 +5,44 @@
 #include <string>
 #include <vector>
 
-// split string p_line into a vector of strings (words)
-// the delimiters are 1 or more whitespaces
-std::vector<std::string>
-split( const std::string & p_line)
-{
-  auto line = p_line + " ";
-  std::vector<std::string> res;
-  bool in_str = false;
-  std::string curr_word = "";
-  for( auto c : line) {
-    if( isspace(c)) {
-      if( in_str)
-        res.push_back(curr_word);
-      in_str = false;
-      curr_word = "";
-    }
-    else {
-      curr_word.push_back(c);
-      in_str = true;
-    }
-  }
-  return res;
-}
-
 // global variable used in stdin_readline()
 //Since l2 cache is 2Mib
 char buffer[2*1024*1024];
 int buff_size = 0;
 int buff_pos = 0;
+bool end_of_file = false;
 
-int
-fast_read_one_character_from_stdin()
+//Adapted from https://gitlab.com/cpsc457/public/longest-int-my-getchar/-/blob/master/fast-int.cpp
+
+int read_characters()
 {
-  // check if buffer[] is empty
   if( buff_pos >= buff_size) {
-    // buffer is empty, let's replenish it
     buff_size = read( STDIN_FILENO, buffer, sizeof(buffer));
-    // detect EOF
     if(buff_size <= 0) return -1;
-    // reset position from where we'll return characters
     buff_pos = 0;
   }
-  // return the next character from the buffer and update position
   return buffer[buff_pos++];
 }
 
-
 // reads in a line from STDIN
-// reads until \n or EOF and result includes \n if present
-// returns empty string on EOF
-std::string
-stdin_readline()
+// reads until any non white space character
+std::string stdin_readline()
 {
   std::string result;
-  while( 1 == fast_read_one_character_from_stdin()) {
-    result.push_back(buffer);
-    if( buffer == '\n') break;
+    while( true) {
+      int c = read_characters();
+      if (c == -1) {
+        end_of_file = true;
+        break;
+      }
+      if(isspace(c)) break;
+      result.push_back(c);
   }
   return result;
 }
 
 // returns true if a word is palindrome
-// palindrome is a string that reads the same forward and backward
-//    after converting all characters to lower case
-bool
-is_palindrome( const std::string & s)
+bool is_palindrome( const std::string & s)
 {
   for( size_t i = 0 ; i < s.size() / 2 ; i ++)
     if( tolower(s[i]) != tolower(s[s.size()-i-1]))
@@ -84,25 +56,27 @@ is_palindrome( const std::string & s)
 // word is a sequence of characters separated by white space
 // white space is whatever isspace() says it is
 //    i.e. ' ', '\n', '\r', '\t', '\n', '\f'
-std::string
-get_longest_palindrome()
+std::string get_longest_palindrome()
 {
   std::string max_pali;
   while(1) {
-    std::string line = stdin_readline();
-    if( line.size() == 0) break;
-    auto words = split( line);
-    for( auto word : words) {
-      if( word.size() <= max_pali.size()) continue;
-      if( is_palindrome(word))
-        max_pali = word;
+    std::string word = stdin_readline();
+    if(end_of_file){
+      if((word.size() > max_pali.size()))
+      {
+        if( is_palindrome(word))
+            max_pali = word;
+      } 
+        break;
     }
+    if((word.size() <= max_pali.size())) continue;
+    if( is_palindrome(word))
+      max_pali = word;
   }
   return max_pali;
 }
 
-int
-main()
+int main()
 {
   std::string max_pali = get_longest_palindrome();
   printf("Longest palindrome: %s\n", max_pali.c_str());
