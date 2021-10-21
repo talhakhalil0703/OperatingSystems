@@ -11,6 +11,7 @@
 #include <thread>
 #include <chrono>
 #include <functional>
+#include <vector>
 
 namespace {
 // input file format for creating unsafe() function

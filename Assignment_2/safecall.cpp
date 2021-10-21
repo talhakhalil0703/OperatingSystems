@@ -1,5 +1,9 @@
 #include "safecall.h"
-
+#include <cstddef>
+#include <cstdio>
+#include <unistd.h>
+#include <iostream>
+#include <thread>
 // ====================================================================
 // this is the function you need to reimplement
 // ====================================================================
@@ -18,11 +22,35 @@ int safecall(int i)
 {
   // This is not a good implementation.
   // You need to change it... :)
-  return unsafe(i);
+  
 
   // My recommendation:
   //
   // remove temporary file
+  unlink("/tmp/talhaSafeCall");
+  pid_t pid = fork();
+  // //If Child
+  if (pid == 0){
+    int result = unsafe(i);
+    FILE * pFile = fopen("/tmp/talhaSafeCall", "wb");
+    if (pFile!=NULL)
+    {
+      fwrite(&result, sizeof(int), 1, pFile);
+    }
+    fclose(pFile);
+    std::cout<< "In child " << result << "\n";
+    exit(0);
+  } else {
+    std::cout<< "Parent \n";
+    std::this_thread::sleep_for(std::chrono::microseconds(1000));
+    int num;
+
+    FILE * pFile = fopen("/tmp/talhaSafeCall.txt", "rb");
+    fread(&num, sizeof(int), 1, pFile);
+    fclose(pFile);
+    std::cout << "READ: " << num;
+    return num;
+  }
   // pid = fork()
   // in child process:
   //   call result=unsafe(i)
@@ -57,4 +85,5 @@ int safecall(int i)
   // If the 2nd child finished first, we know that the unsafe() is still
   // running even after 1s. We can kill the 1st child and return -1.
   //
+  return 0;
 }
