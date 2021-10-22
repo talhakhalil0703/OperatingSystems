@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <iostream>
 #include <thread>
+#include <signal.h>
 // ====================================================================
 // this is the function you need to reimplement
 // ====================================================================
@@ -22,7 +23,6 @@ int safecall(int i)
 {
   // This is not a good implementation.
   // You need to change it... :)
-  
 
   // My recommendation:
   //
@@ -30,26 +30,49 @@ int safecall(int i)
   unlink("/tmp/talhaSafeCall");
   pid_t pid = fork();
   // //If Child
-  if (pid == 0){
+  if (pid == 0)
+  {
     int result = unsafe(i);
-    FILE * pFile = fopen("/tmp/talhaSafeCall", "wb");
-    if (pFile!=NULL)
+    FILE *pFile = fopen("/tmp/talhaSafeCall", "wb");
+    if (pFile != NULL)
     {
       fwrite(&result, sizeof(int), 1, pFile);
     }
     fclose(pFile);
-    std::cout<< "In child " << result << "\n";
     exit(0);
-  } else {
-    std::cout<< "Parent \n";
-    std::this_thread::sleep_for(std::chrono::microseconds(1000));
-    int num;
+  }
+  else
+  {
+    auto start_time = std::chrono::steady_clock::now();
+    for (;;)
+    {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      pid_t n = waitpid(pid, NULL, WNOHANG);
+      if (n > 1)
+      {
+        int num;
+        FILE *pFile = fopen("/tmp/talhaSafeCall", "rb");
+        if (pFile == NULL)
+        {
+          return -2;
+        }
+        uint8_t stat = fread(&num, sizeof(int), 1, pFile);
+        fclose(pFile);
 
-    FILE * pFile = fopen("/tmp/talhaSafeCall.txt", "rb");
-    fread(&num, sizeof(int), 1, pFile);
-    fclose(pFile);
-    std::cout << "READ: " << num;
-    return num;
+        if (stat == 0)
+        {
+          return -2;
+        }
+        return num;
+      }
+      auto curr_time = std::chrono::steady_clock::now();
+      double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(curr_time - start_time).count() / 1000000.0;
+      if (elapsed > 1.0)
+      {
+        kill(pid, SIGKILL);
+        return -1;
+      }
+    }
   }
   // pid = fork()
   // in child process:

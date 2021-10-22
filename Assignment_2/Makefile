@@ -1,6 +1,6 @@
 SOURCES = main.cpp safecall.cpp
 CPPC = g++
-CPPFLAGS = -c -Wall -O2
+CPPFLAGS = -c -Wall -O2 -std=c++11
 LDLIBS = 
 OBJECTS = $(SOURCES:.cpp=.o)
 TARGET = safecall
