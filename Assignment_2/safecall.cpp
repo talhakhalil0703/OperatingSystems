@@ -5,6 +5,9 @@
 #include <iostream>
 #include <thread>
 #include <signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
 // ====================================================================
 // this is the function you need to reimplement
 // ====================================================================
@@ -46,7 +49,7 @@ int safecall(int i)
     auto start_time = std::chrono::steady_clock::now();
     for (;;)
     {
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      std::this_thread::sleep_for(std::chrono::microseconds(1));
       pid_t n = waitpid(pid, NULL, WNOHANG);
       if (n > 1)
       {
