@@ -1,29 +1,69 @@
-// ======================================================================
-// You must modify this file and then submit it for grading to D2L.
-// ======================================================================
-//
-// count_pi() calculates the number of pixels that fall into a circle
-// using the algorithm explained here:
-//
-// https://en.wikipedia.org/wiki/Approximations_of_%CF%80
-//
-// count_pixels() takes 2 paramters:
-//  r         =  the radius of the circle
-//  n_threads =  the number of threads you should create
-//
-// Currently the function ignores the n_threads parameter. Your job is to
-// parallelize the function so that it uses n_threads threads to do
-// the computation.
-
 #include "calcpi.h"
+#include <thread>
+#include <iostream>
+
+struct Task
+{
+    int start_x, end_x;
+    uint64_t partial_count;
+};
+
+void inner_loop_count(int r, double rsq, Task& task)
+{
+    for (double x = task.start_x; x < task.end_x; x++)
+    {
+        for (double y = 0; y <= r; y++)
+        {
+            if (x * x + y * y <= rsq)
+            {
+                task.partial_count++;
+            }
+        }
+    }
+
+    return;
+}
 
 uint64_t count_pixels(int r, int n_threads)
 {
-  double rsq = double(r) * r;
-  uint64_t count = 0;
-  for( double x = 1 ; x <= r ; x ++)
-    for( double y = 0 ; y <= r ; y ++)
-      if( x*x + y*y <= rsq) count ++;
-  return count * 4 + 1;
-}
+    Task tasks[n_threads];
+    double rsq = double(r) * r;
+    uint64_t count = 0;
+    int incremental_r = r / n_threads;
+    int remainder_r = r % n_threads;
+    int index[n_threads + 1];
+    //End value, we do up to not including last value
+    index[n_threads] = r + 1;
 
+    for (int i = 0; i < n_threads; i++)
+    {
+        index[i] = incremental_r * i;
+    }
+    for (int i = 0; i < remainder_r; i++)
+    {
+        index[i] = index[i] + 1;
+        index[i + 1] = index[i + 1] + 1;
+    }
+    index[0] = 0;
+
+    std::thread threads[n_threads];
+    for (int i = 0; i < n_threads; i++)
+    {
+        tasks[i].start_x = index[i];
+        tasks[i].end_x = index[i + 1];
+        tasks[i].partial_count = 0;
+        threads[i] = std::thread(inner_loop_count, r, rsq, std::ref(tasks[i]));
+    }
+
+    for (auto& t : threads)
+    {
+        t.join();
+    }
+
+    for (auto& task : tasks)
+    {
+        count += task.partial_count;
+    }
+
+    return count * 4 + 1;
+}
