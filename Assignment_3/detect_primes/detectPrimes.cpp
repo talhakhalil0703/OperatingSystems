@@ -9,12 +9,10 @@
 
 std::mutex m;
 class AtomicIndex {
-    std::atomic<int> index = {0};
+    std::atomic<int> index = {-1};
 public:
     int get() { 
-        int return_int = index;
-        index++;
-        return return_int; 
+        return index++; 
     }
 };
 
@@ -47,7 +45,6 @@ static void threaded_prime_calc(const std::vector<int64_t>& nums,std::vector<int
 #ifdef DEBUG
         std::cout << local_count << std::endl;
 #endif
-
         if (is_prime(nums[local_count])) {
             std::unique_lock<std::mutex> lk(m);
             results.push_back(nums[local_count]);
