@@ -1,11 +1,22 @@
-// =============================================================================
-// You must modify this file and then submit it for grading to D2L.
-// =============================================================================
-
 #include "detectPrimes.h"
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <thread>
+#include <iostream>
+#include <mutex>
+#include <atomic>
+
+std::mutex m;
+class AtomicIndex {
+    std::atomic<int> index = {0};
+public:
+    int get() { 
+        int return_int = index;
+        index++;
+        return return_int; 
+    }
+};
 
 // returns true if n is prime, otherwise returns false
 // -----------------------------------------------------------------------------
@@ -30,21 +41,42 @@ static bool is_prime(int64_t n)
   return true;
 }
 
-// This function takes a list of numbers in nums[] and returns only numbers that
-// are primes.
-//
-// The parameter n_threads indicates how many threads should be created to speed
-// up the computation.
-// -----------------------------------------------------------------------------
-// You will most likely need to re-implement this function entirely.
-// Note that the current implementation ignores n_threads. Your multithreaded
-// implementation must use this parameter.
+static void threaded_prime_calc(const std::vector<int64_t>& nums,std::vector<int64_t>& results, AtomicIndex &index) {
+    for (long unsigned int local_count = index.get(); local_count < nums.size(); local_count = index.get()) {
+
+#ifdef DEBUG
+        std::cout << local_count << std::endl;
+#endif
+
+        if (is_prime(nums[local_count])) {
+            std::unique_lock<std::mutex> lk(m);
+            results.push_back(nums[local_count]);
+        };
+    }
+    return;
+}
+//A much better, yet still simple solution, would be to parallelize the outer loop, but instead of
+//giving each thread a fixed portion of the input to test, it would decide dynamically how many
+//numbers each thread would process.For example, each thread could process the next number in
+//the list, and if it is a prime, it would add it to the result vector.This would repeat until all
+//numbers have been tested.
 std::vector<int64_t>
 detect_primes(const std::vector<int64_t> & nums, int n_threads)
 {
   std::vector<int64_t> result;
-  for (auto num : nums) {
-    if (is_prime(num)) result.push_back(num);
+  std::thread threads[n_threads];
+
+  AtomicIndex index;
+  
+  for (int i = 0; i < n_threads; i++)
+  {
+      threads[i] = std::thread(threaded_prime_calc, std::ref(nums), std::ref(result), std::ref(index));
   }
+
+  for (auto& t : threads)
+  {
+      t.join();
+  }
+
   return result;
 }
