@@ -78,5 +78,6 @@ int main(int argc, char ** argv)
 
   std::cout << "\nFinished in " << std::fixed << std::setprecision(4) << elapsed
             << "s\n";
+  std::cout << "Identified " << primes.size() << " primes:\n";
   return 0;
 }
