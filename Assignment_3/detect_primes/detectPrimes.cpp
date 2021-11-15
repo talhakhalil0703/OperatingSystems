@@ -58,8 +58,8 @@ void threaded_prime_calc(const std::vector<int64_t>& nums,
                         simple_barrier & barrier, 
                         int number_of_threads,
                         int thread_number,
-                        uint64_t& max,
-                        uint64_t& value_to_check_for_prime)
+                        int64_t& max,
+                        int64_t& value_to_check_for_prime)
 {
     while (true) {
         //Pick thread for serial task
@@ -78,13 +78,13 @@ void threaded_prime_calc(const std::vector<int64_t>& nums,
                     got_answer = true;
                     results.push_back(value_to_check_for_prime);
                 } else if (value_to_check_for_prime % 2 == 0) got_answer = true; // handle multiples of 2
-                else if (value_to_check_for_prime % 3 == 0) got_answer = true; // handle multiples of 3
+                else if (value_to_check_for_prime % 3== 0) got_answer = true; // handle multiples of 3
             }
             
             if (!got_answer) {
                 //If not a simple answer setup work for threading
                 DEBUG(value_to_check_for_prime);
-                uint64_t sq = value_to_check_for_prime;
+                int64_t sq = value_to_check_for_prime;
                 max = sqrt(sq);
                 DEBUG(max);
                 //If we still need to calculate....
@@ -104,14 +104,14 @@ void threaded_prime_calc(const std::vector<int64_t>& nums,
             continue;
         }       
 
-        uint64_t i = 5;
+        int64_t i = 5;
         //Checking if its prime using a uinque divisor seeded by the thread index
         while (true) {
             //If any thread finds its not a prime lets leave 
-            if (!current_is_prime || i + (thread_number * 6) > max || i + 2 + (thread_number * 6) > max) {
+            if (!current_is_prime || (i + (thread_number * 6) > max && i + 2 + (thread_number * 6) > max)) {
                 break;
             }
-
+  
             //We only write if either of the statement is true, otherwise we don't make the atomic call
             if (value_to_check_for_prime % (i + (thread_number * 6)) == 0) current_is_prime = false;
             else if (value_to_check_for_prime % (i + 2 + (thread_number * 6)) == 0) current_is_prime = false;
@@ -133,8 +133,8 @@ detect_primes(const std::vector<int64_t>& nums, int n_threads)
     std::thread threads[n_threads];
     simple_barrier barrier(n_threads);
     uint64_t index = 0;
-    uint64_t max = 0;
-    uint64_t value_to_check_for_prime = 0;
+    int64_t max = 0;
+    int64_t value_to_check_for_prime = 0;
     
     for (int i = 0; i < n_threads; i++)
     {
