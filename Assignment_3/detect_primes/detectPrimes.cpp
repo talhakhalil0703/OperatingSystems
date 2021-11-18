@@ -103,6 +103,11 @@ detect_primes(const std::vector<int64_t>& nums, int n_threads)
     int64_t max = 0;
     int64_t value_to_check_for_prime = 0;
     int64_t THRESHOLD = 100000;
+    bool run_multi = false;
+
+    if (n_threads > 1) {
+        run_multi = true;
+    }
 
    while(true){
        //If the number is big we'll use threads
@@ -115,7 +120,7 @@ detect_primes(const std::vector<int64_t>& nums, int n_threads)
             value_to_check_for_prime = nums[index++];
             
             //If simple answer compute here
-            if (value_to_check_for_prime < THRESHOLD) {
+            if ((value_to_check_for_prime < THRESHOLD) || !run_multi) {
                 if (is_prime(value_to_check_for_prime)) {
                     result.push_back(value_to_check_for_prime);
                 }
