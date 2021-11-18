@@ -10,6 +10,7 @@ struct Task
 
 void inner_loop_count(int r, double rsq, Task& task)
 {
+    //Local cache less memory misses.
     uint64_t count = 0;
     for (double x = task.start_x; x < task.end_x; x++)
     {
@@ -40,15 +41,19 @@ uint64_t count_pixels(int r, int n_threads)
     {
         index[i] = incremental_r * i;
     }
-    index[n_threads] = r;
+    //Just set the upperbound back to r
+    //Because at the end the comparison is less than not equal to
+    index[n_threads] = r+1;
     
     for (int i = 0; i < remainder_r; i++)
     {
         index[i] = index[i] + 1;
         index[i + 1] = index[i + 1] + 1;
     }
+    // Starts from 1 and not 0 
     index[0] = 1;
 
+    //Start all threads
     std::thread threads[n_threads];
     for (int i = 0; i < n_threads; i++)
     {
@@ -58,11 +63,13 @@ uint64_t count_pixels(int r, int n_threads)
         threads[i] = std::thread(inner_loop_count, r, rsq, std::ref(tasks[i]));
     }
 
+    //Wait for all threads
     for (auto& t : threads)
     {
         t.join();
     }
 
+    // Accumulate count at end so we don't get multiple access in threads.
     for (auto& task : tasks)
     {
         count += task.partial_count;
