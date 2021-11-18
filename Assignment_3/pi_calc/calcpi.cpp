@@ -4,7 +4,7 @@
 
 struct Task
 {
-    int start_x, end_x;
+    uint64_t start_x, end_x;
     uint64_t partial_count;
 };
 
@@ -39,7 +39,7 @@ uint64_t count_pixels(int r, int n_threads)
     {
         index[i] = incremental_r * i;
     }
-    //index[n_threads - 1] = r;
+    index[n_threads] = r;
     
       for (int i = 0; i < remainder_r; i++)
     {
@@ -47,7 +47,6 @@ uint64_t count_pixels(int r, int n_threads)
         index[i + 1] = index[i + 1] + 1;
     }
     index[0] = 1;
-
 
     std::thread threads[n_threads];
     for (int i = 0; i < n_threads; i++)
