@@ -29,9 +29,9 @@ uint64_t count_pixels(int r, int n_threads)
     Task tasks[n_threads];
     double rsq = double(r) * r;
     uint64_t count = 0;
-    int incremental_r = r / n_threads;
+    uint64_t incremental_r = r / n_threads;
     int remainder_r = r % n_threads;
-    int index[n_threads + 1];
+    uint64_t index[n_threads + 1];
     //End value, we do up to not including last value
     index[n_threads] = r + 1;
 
@@ -39,12 +39,15 @@ uint64_t count_pixels(int r, int n_threads)
     {
         index[i] = incremental_r * i;
     }
-    for (int i = 0; i < remainder_r; i++)
+    //index[n_threads - 1] = r;
+    
+      for (int i = 0; i < remainder_r; i++)
     {
         index[i] = index[i] + 1;
         index[i + 1] = index[i + 1] + 1;
     }
-    index[0] = 0;
+    index[0] = 1;
+
 
     std::thread threads[n_threads];
     for (int i = 0; i < n_threads; i++)
