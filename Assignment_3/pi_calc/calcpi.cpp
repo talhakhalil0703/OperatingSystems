@@ -10,17 +10,18 @@ struct Task
 
 void inner_loop_count(int r, double rsq, Task& task)
 {
+    uint64_t count = 0;
     for (double x = task.start_x; x < task.end_x; x++)
     {
         for (double y = 0; y <= r; y++)
         {
             if (x * x + y * y <= rsq)
             {
-                task.partial_count++;
+                count++;
             }
         }
     }
-
+    task.partial_count = count;
     return;
 }
 
@@ -41,7 +42,7 @@ uint64_t count_pixels(int r, int n_threads)
     }
     index[n_threads] = r;
     
-      for (int i = 0; i < remainder_r; i++)
+    for (int i = 0; i < remainder_r; i++)
     {
         index[i] = index[i] + 1;
         index[i + 1] = index[i + 1] + 1;
