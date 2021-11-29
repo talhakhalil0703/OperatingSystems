@@ -1,0 +1,5 @@
+*~
+deadlock
+*.o
+.vscode
+workspace.code-workspace
