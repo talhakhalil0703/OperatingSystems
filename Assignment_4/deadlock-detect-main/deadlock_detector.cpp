@@ -24,7 +24,7 @@ void deadlock_detect(const Graph & gr, Result & res)
     std::vector<int> out;
     std::vector<int> zeros;
 
-    for (int i = 0; i < gr.out_counts.size(); i++) {
+    for (uint32_t i = 0; i < gr.out_counts.size(); i++) {
         int count = gr.out_counts[i];
         out.push_back(count);
         if (count == 0) {
@@ -46,7 +46,7 @@ void deadlock_detect(const Graph & gr, Result & res)
 
     // Check if out count > 0; and then check if the node is actually a process
     // node, remove the p from the string and add it to the process list
-    for (int i = 0; i < out.size(); i++) {
+    for (uint32_t i = 0; i < out.size(); i++) {
         if (out[i] > 0) {
             if (names[i][0] == 'p') {
                 res.dl_procs.push_back(names[i].substr(1));
