@@ -1,149 +1,128 @@
-// this is the ONLY file you should edit and submit to D2L
-
 #include "deadlock_detector.h"
 #include "common.h"
 #include <iostream>
 
+#if 1
+#define DEBUG(x)                                                               \
+    do {                                                                       \
+        std::cerr << #x << ": " << x << std::endl;                             \
+    } while (0)
+#else
+#define DEBUG(x)
+#endif
+
+std::vector<std::string> names;
+
 class Graph {
 public:
-    std::unordered_map<std::string, std::vector<std::string>> adj_list;
-    std::unordered_map<std::string, int> out_counts;
+    std::vector<std::vector<int>> adj_list;
+    std::vector<int> out_counts;
 } graph;
 
-void print_out_vector(const std::unordered_map<std::string, int> & out)
+void deadlock_detect(const Graph & gr, Result & res)
 {
-    for (auto & it : out) {
-        std::cout << it.first << ":" << it.second << " ";
-    }
+    std::vector<int> out;
+    std::vector<int> zeros;
 
-    std::cout << std::endl;
-}
-
-void print_vector(const std::vector<std::string> & vec)
-{
-    for (std::string item : vec) {
-        std::cout << item;
-    }
-    std::cout << std::endl;
-}
-
-void is_deadlock(const Graph & gr, std::vector<std::string> & dl_procs)
-{
-    // out = out_counts deep copy so we can modify it
-    std::unordered_map<std::string, int> out;
-    std::vector<std::string> zeros;
-
-    // Deep copy:
-    for (auto & it : gr.out_counts) {
-        out[it.first] = it.second;
-    }
-
-    // Find all zeros:
-    for (auto & it : gr.adj_list) {
-        if (gr.out_counts.find(it.first) == gr.out_counts.end()) {
-            zeros.push_back(it.first);
+    for (int i = 0; i < gr.out_counts.size(); i++) {
+        int count = gr.out_counts[i];
+        out.push_back(count);
+        if (count == 0) {
+            zeros.push_back(i);
         }
     }
 
-    // std::cout << "Printing Zeros: " << zeros.size() << " ";
-    // print_vector(zeros);
-    // std::cout << "Printing Copied Out: " << out.size() << " ";
-    // print_out_vector(out);
-
     while (zeros.size() > 0) {
-        std::string n = zeros.back();
+        int n = zeros.back();
         zeros.pop_back();
-        auto vec = gr.adj_list;
-        for (std::string item : vec[n]) {
-            out[item] = out[item] - 1;
-            if (out[item] == 0) {
-                zeros.push_back(item);
+
+        for (int n2 : gr.adj_list[n]) {
+            out[n2] = out[n2] - 1;
+            if (out[n2] == 0) {
+                zeros.push_back(n2);
             }
         }
     }
-    // zeros[] find all nodes in graph with outdegree == 0
 
-    for (auto & it : out) {
-        if (it.second > 0 && it.first[0] == 'p') {
-            dl_procs.push_back(it.first);
+    // Check if out count > 0; and then check if the node is actually a process
+    // node, remove the p from the string and add it to the process list
+    for (int i = 0; i < out.size(); i++) {
+        if (out[i] > 0) {
+            if (names[i][0] == 'p') {
+                res.dl_procs.push_back(names[i].substr(1));
+            }
         }
     }
-
-    // for (std::string proc : dl_procs) {
-    //     std::cout << proc << " ";
-    // }
-    // std::cout << std::endl;
 }
 
-void create_graph(
-    const std::vector<std::string> & edges, Graph & gr, Result & result)
+void create_graph(const std::vector<std::string> & edges, Result & res)
 {
+    Word2Int converter = Word2Int();
+    Graph gr = Graph();
 
-    int i = 0;
+    int amount_of_items = -1;
+    bool incremented = false;
+    int edge_iteration = 0;
     for (const std::string & edge : edges) {
         std::string m_edge = simplify(edge);
         std::vector<std::string> s = split(m_edge);
-        std::string resource_name = "r" + s.at(2);
+
         std::string process_name = "p" + s.at(0);
+        std::string resource_name = "r" + s.at(2);
+        int int_process = converter.get(process_name);
+        int int_resource = converter.get(resource_name);
 
-        // std::cout << edge << std::endl;
-        if (s.at(1).compare("<-")) {
-            // P -> R
-            if (gr.adj_list[resource_name].size() == 0) {
-                gr.adj_list[resource_name] = std::vector<std::string>();
-            }
-            gr.adj_list[resource_name].push_back(process_name);
-
-            gr.out_counts[process_name] = gr.out_counts[process_name] + 1;
-        } else {
-            // P <- R
-            if (gr.adj_list[process_name].size() == 0) {
-                gr.adj_list[process_name] = std::vector<std::string>();
-            }
-            gr.adj_list[process_name].push_back(resource_name);
-            gr.out_counts[resource_name] = gr.out_counts[resource_name] + 1;
+        // Check to see if we have incremented, based on node names, if we have
+        // then we should add onto the graph
+        if (int_process > amount_of_items) {
+            amount_of_items = int_process;
+            incremented = true;
+            names.push_back(process_name);
         }
 
-        is_deadlock(gr, result.dl_procs);
-        // std::cout << "dl_procx size " << result.dl_procs.size()
-        //           << std::endl;
-        if (result.dl_procs.size() > 0) {
-            result.edge_index = i;
+        if (incremented) {
+            gr.adj_list.push_back(std::vector<int>());
+            gr.out_counts.push_back(0);
+            incremented = false;
+        }
+
+        if (int_resource > amount_of_items) {
+            amount_of_items = int_resource;
+            incremented = true;
+            names.push_back(resource_name);
+        }
+
+        if (incremented) {
+            gr.adj_list.push_back(std::vector<int>());
+            gr.out_counts.push_back(0);
+            incremented = false;
+        }
+
+        if (s.at(1).compare("<-")) {
+            // P -> R
+            gr.adj_list[int_resource].push_back(int_process);
+            gr.out_counts[int_process] = gr.out_counts[int_process] + 1;
+        } else {
+            // P <- R
+            gr.adj_list[int_process].push_back(int_resource);
+            gr.out_counts[int_resource] = gr.out_counts[int_resource] + 1;
+        }
+
+        deadlock_detect(gr, res);
+
+        if (res.dl_procs.size() > 0) {
+            res.edge_index = edge_iteration;
             return;
         }
 
-        i++;
-        if (i % 100 == 0) {
-            std::cout << i << std::endl;
-        }
-    }
-}
-
-void print_graph(const Graph & gr)
-{
-    std::cout << "Printing Graph" << std::endl;
-
-    for (auto & it : gr.adj_list) {
-        std::cout << it.first << ":";
-        for (std::string v : it.second) {
-            std::cout << v << " ";
-        }
-        std::cout << std::endl;
-    }
-
-    std::cout << "Out Counts" << std::endl;
-
-    for (auto & it : gr.out_counts) {
-        std::cout << it.first << ":" << it.second << std::endl;
+        edge_iteration += 1;
     }
 }
 
 Result detect_deadlock(const std::vector<std::string> & edges)
 {
-
-    Graph gr;
     Result result;
     result.edge_index = -1;
-    create_graph(edges, gr, result);
+    create_graph(edges, result);
     return result;
 }
