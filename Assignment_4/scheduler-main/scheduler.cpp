@@ -2,6 +2,7 @@
 
 #include "scheduler.h"
 #include "common.h"
+#include <cmath>
 #include <iostream>
 
 #define DEBUG_ON 1
@@ -23,7 +24,7 @@ int64_t curr_process_bursts = 0;
 std::vector<int> rq, jq;
 std::vector<int64_t> remaining_bursts;
 int jobs_remaining;
-int new_process_id = 0;
+uint64_t new_process_id = 0;
 int iteration_count = 0;
 
 bool new_process_arrive(std::vector<Process> & processes)
@@ -138,9 +139,28 @@ void simulate_rr(
 
         if (cpu == -1) { // If idling note that.
             if (seq.back() != -1) seq.push_back(cpu);
-            cpu_time +=1;
+            if (rq.size() == 0 && new_process_id < processes.size()) {
+                cpu_time = processes[new_process_id].arrival_time;
+            } else {
+                cpu_time += 1;
+            }
         } else { // If not idling then note that.
-            int time_skip = (remaining_bursts[cpu] >= quantum)? quantum : remaining_bursts[cpu]; 
+            int64_t time_skip = 0;
+            if (jobs_remaining == 1) {
+                time_skip = remaining_bursts[cpu];
+            } else if (rq.size() == 0 && new_process_id < processes.size()) {
+                time_skip = processes[new_process_id].arrival_time - cpu_time;
+                if (time_skip > remaining_bursts[cpu]) {
+                    time_skip = remaining_bursts[cpu];
+                } else if (time_skip % quantum != 0) {
+                    // Take quantum time skips
+                    double x = std::ceil(1.0 * time_skip / quantum);
+                    time_skip = x * quantum;
+                }
+
+            } else {
+                time_skip = (remaining_bursts[cpu] >= quantum) ? quantum : remaining_bursts[cpu];
+            }
             remaining_bursts[cpu] -= time_skip;
             curr_process_bursts += time_skip;
             cpu_time += time_skip;
