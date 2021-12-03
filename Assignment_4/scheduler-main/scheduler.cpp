@@ -5,17 +5,6 @@
 #include <cmath>
 #include <iostream>
 
-#define DEBUG_ON 1
-
-#if DEBUG_ON
-#define DEBUG(x)                                                                                   \
-    do {                                                                                           \
-        std::cerr << #x << ": " << x << std::endl;                                                 \
-    } while (0)
-#else
-#define DEBUG(x)
-#endif
-
 int64_t remaining_slice;
 int cpu = -1;
 
@@ -31,8 +20,6 @@ bool new_process_arrive(std::vector<Process> & processes)
 {
 
     if (new_process_id < processes.size() && processes[new_process_id].arrival_time <= cpu_time) {
-        DEBUG("New process is arriving");
-        DEBUG(new_process_id);
         rq.push_back(processes[new_process_id].id);
         remaining_bursts.push_back(processes[new_process_id].burst);
         new_process_id++;
@@ -46,8 +33,6 @@ bool while_new_process_arrive(std::vector<Process> & processes)
     bool added_new = false;
 
     while (new_process_id < processes.size() && processes[new_process_id].arrival_time < cpu_time) {
-        DEBUG("New process is arriving");
-        DEBUG(new_process_id);
         rq.push_back(processes[new_process_id].id);
         remaining_bursts.push_back(processes[new_process_id].burst);
         new_process_id++;
@@ -60,7 +45,6 @@ bool current_job_is_done(std::vector<Process> & processes)
 {
     if (cpu != -1) {
         if (remaining_bursts[cpu] <= 0) {
-            DEBUG("Process in cpu is done");
             processes[cpu].finish_time = cpu_time;
             cpu = -1;
             jobs_remaining -= 1;
@@ -74,8 +58,6 @@ bool current_job_is_done(std::vector<Process> & processes)
 bool time_slice_exceeded(std::vector<Process> & processes, int64_t quantum)
 {
     if (curr_process_bursts >= quantum) {
-        DEBUG("Exceeded time slice");
-        DEBUG(cpu);
         while_new_process_arrive(processes);
         rq.push_back(cpu);
         if (rq.size() > 0) {
@@ -90,22 +72,14 @@ bool time_slice_exceeded(std::vector<Process> & processes, int64_t quantum)
 bool cpu_idle_and_job_available(std::vector<Process> & processes, std::vector<int> & seq)
 {
     if (cpu == -1 && rq.size() > 0) {
-        DEBUG("CPU is idle and RQ not empty");
         cpu = rq.front();
         rq.erase(rq.begin());
-        DEBUG(cpu);
         // If first time starting the process note it's start time
         if (processes[cpu].start_time == -1) processes[cpu].start_time = cpu_time;
         if (seq.back() != cpu) seq.push_back(cpu);
         return true;
     }
     return false;
-}
-
-void print_vector(std::vector<int> & vec)
-{
-    for (const int & i : vec) { std::cout << i << " "; }
-    std::cout << std::endl;
 }
 
 void simulate_rr(
@@ -116,26 +90,11 @@ void simulate_rr(
 
     while (1) {
         if (jobs_remaining == 0) break;
-#if DEBUG_ON
-        std::cout << std::endl;
-#endif
-        DEBUG(iteration_count++);
-        DEBUG(cpu_time);
-        DEBUG(rq.size());
-        DEBUG(cpu);
-        DEBUG(curr_process_bursts);
 
-#if DEBUG_ON
-        DEBUG("Ready Queue");
-        print_vector(rq);
-#endif
         if (current_job_is_done(processes)) continue;
         if (time_slice_exceeded(processes, quantum)) continue;
         if (new_process_arrive(processes)) continue;
         if (cpu_idle_and_job_available(processes, seq)) continue;
-
-        DEBUG("Executing burst on cpu or idling");
-        DEBUG(cpu);
 
         if (cpu == -1) { // If idling note that.
             if (seq.back() != -1) seq.push_back(cpu);
