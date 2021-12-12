@@ -28,7 +28,7 @@ void create_adjacency_list(
     std::vector<long> & end_nodes)
 {
   adj_list.resize(fat.size());
-  for (int i = 0; i < fat.size(); i++) {
+  for (uint64_t i = 0; i < fat.size(); i++) {
     if (fat[i] != -1) {
       adj_list[fat[i]].push_back(i);
     } else {
