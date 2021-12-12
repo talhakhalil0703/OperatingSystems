@@ -61,8 +61,8 @@ struct Simulator {
     // - search through the list of partitions from start to end, and
     //   find the largest partition that fits requested size
     //     - in case of ties, pick the first partition found
-    if (free_blocks.begin() != free_blocks.end()) {
-      if ((*(free_blocks.begin()))->size > size) {
+    if (! free_blocks.empty()) {
+      if ((*(free_blocks.begin()))->size >= size) {
         partition_to_use = *free_blocks.begin();
         allocate_split(partition_to_use, tag, size);
         return;
@@ -86,14 +86,14 @@ struct Simulator {
       // If the last memory was indeed free
       if (last_it_size != 0) {
         free_blocks.erase(last_it);
-        last_it->size += pages_to_request * size_of_pages;
+        last_it->size += (pages_to_request * size_of_pages);
         free_blocks.insert(last_it);
       } else {
         // If the last memory was not free
-        int64_t new_addr = std::prev(all_blocks.end())->addr + std::prev(all_blocks.end())->size;
-        Partition part = Partition(pages_to_request * size_of_pages, new_addr);
-        part.tag = -1;
-        all_blocks.insert(all_blocks.end(), part);
+        int64_t new_addr = last_it->addr + last_it->size;
+        Partition free_partition = Partition(pages_to_request * size_of_pages, new_addr);
+        free_partition.tag = -1;
+        all_blocks.insert(all_blocks.end(), free_partition);
         free_blocks.insert(std::prev(all_blocks.end()));
       }
       //     - the last partition will be the best partition
@@ -109,7 +109,7 @@ struct Simulator {
     //     - mark the first partition occupied, and store the tag in it
     //     - mark the second partition free
     // If partion size is the same size as we exactly need it
-    PartitionRef saved_ref = partition_to_use;
+
     if (partition_to_use->size == size) {
       free_blocks.erase(partition_to_use);
       partition_to_use->tag = tag;
@@ -171,10 +171,9 @@ struct Simulator {
 
       if (next == all_blocks.end()) {
         next_free = false;
-      } else if (next->tag == -1){
+      } else if (next->tag == -1) {
         next_free = true;
       }
-    
 
       if (! prev_free && ! next_free) {
         // Add onto free list
